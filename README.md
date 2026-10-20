@@ -3,7 +3,10 @@
 손익관리 › 공동물류 원가배분 **13개 메뉴**를 Next.js로 재구현한 앱입니다.  
 UI는 Salesforce Lightning Design System에 맞춘 글로벌 헤더·좌측 내비·페이지 크롬을 사용합니다.
 
-저장소: [github.com/kk00701903-hub/cost-Allocation](https://github.com/kk00701903-hub/cost-Allocation)
+저장소: [github.com/kk00701903-hub/cost-Allocation](https://github.com/kk00701903-hub/cost-Allocation)  
+**GitHub Pages:** [kk00701903-hub.github.io/cost-Allocation](https://kk00701903-hub.github.io/cost-Allocation/)
+
+Pages는 정적 배포입니다. 데이터는 브라우저 `localStorage`에 저장되며, AI 도우미 API는 로컬 서버에서만 동작합니다.
 
 ## 특징
 

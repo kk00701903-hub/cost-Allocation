@@ -53,7 +53,12 @@ export default function Chat({ active }: { active: string }) {
     const next: Msg[] = [...msgs, { role: 'user', content: q.trim() }];
     setMsgs([...next, { role: 'assistant', content: '' }]); setText(''); setBusy(true);
     try {
-      const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages: next, context: ctx() }) });
+      if ((process.env.NEXT_PUBLIC_STORAGE || 'server') === 'local') {
+        setMsgs([...next, { role: 'assistant', content: 'GitHub Pages 정적 배포에서는 AI 도우미 API를 쓸 수 없습니다. 로컬에서 `npm run start`로 실행하고 ANTHROPIC_API_KEY를 설정하세요.' }]);
+        return;
+      }
+      const api = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/chat`;
+      const r = await fetch(api, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages: next, context: ctx() }) });
       if (!r.ok || !r.body) { const t = await r.text(); setMsgs([...next, { role: 'assistant', content: `⚠ ${t}` }]); return; }
       const rd = r.body.getReader(); const dec = new TextDecoder(); let acc = '';
       for (;;) {

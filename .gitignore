@@ -1,6 +1,7 @@
 node_modules
 .next
 out
+src/app/_api_bak_pages
 storage
 .env
 .env.local

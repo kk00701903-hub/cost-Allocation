@@ -25,9 +25,9 @@ export function unpackTrips(p: PackedTrips): Trip[] {
   }));
 }
 
-const base = '/';
+const base = () => `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/`;
 export async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${base}data/${path}`);
+  const res = await fetch(`${base()}data/${path}`);
   if (!res.ok) throw new Error(`${path} 를 읽지 못했습니다 (${res.status})`);
   return res.json() as Promise<T>;
 }

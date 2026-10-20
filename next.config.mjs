@@ -1,4 +1,23 @@
 /** @type {import('next').NextConfig} */
-// devIndicators: 개발 모드 왼쪽 아래 Next 표시가 창 탭을 가려서 끔(2026-10-16)
-const nextConfig = { reactStrictMode: false, devIndicators: false };
+const isPages = process.env.GITHUB_PAGES === 'true';
+const basePath = isPages ? '/cost-Allocation' : '';
+
+const nextConfig = {
+  reactStrictMode: false,
+  devIndicators: false,
+  ...(isPages
+    ? {
+        output: 'export',
+        basePath,
+        assetPrefix: basePath,
+        trailingSlash: true,
+        images: { unoptimized: true },
+      }
+    : {}),
+  env: {
+    NEXT_PUBLIC_BASE_PATH: process.env.NEXT_PUBLIC_BASE_PATH || basePath,
+    NEXT_PUBLIC_STORAGE: process.env.NEXT_PUBLIC_STORAGE || (isPages ? 'local' : 'server'),
+  },
+};
+
 export default nextConfig;
