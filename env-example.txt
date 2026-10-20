@@ -1,0 +1,7 @@
+# 이 파일을 .env.local 로 복사하고 값을 넣으세요. (.env.local 은 git 에 올리지 마세요)
+ANTHROPIC_API_KEY=sk-ant-여기에-키
+# 챗봇 모델 (기본 claude-sonnet-5-5)
+ANTHROPIC_MODEL=claude-sonnet-5-5
+ANTHROPIC_MAX_TOKENS=2000
+# 데이터 저장 폴더 (기본: 프로젝트의 storage 폴더)
+# COST_ALLOC_STORAGE=E:\cost-alloc-data
