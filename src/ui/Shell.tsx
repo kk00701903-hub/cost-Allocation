@@ -21,7 +21,6 @@ const IDS: Record<string, string> = {
   M11: 'JTPF040110', M12: 'JTPF040130', M13: 'JTPF040120', N00: 'CA-N00', X01: 'CA-X01', LOG: 'CA-LOG',
 };
 const NAME: Record<string, string> = { ...MENU_NAME, N00: '월 마감 흐름', LOG: '작업 이력' };
-const ADDED = new Set(['N00', 'X01', 'LOG']);
 
 /** 2레벨 내비: 카테고리 › 화면 (월 마감 흐름과 동일 축) */
 const NAV: { id: string; label: string; items: string[] }[] = [
@@ -132,7 +131,6 @@ function Inner() {
                     >
                       <span className="nav-chevron" aria-hidden>{openCat ? '▾' : '▸'}</span>
                       <span className="nav-cat-label">{g.label}</span>
-                      <span className="nav-count">{g.items.length}</span>
                     </button>
                     {openCat && (
                       <div className="nav-items" role="group" aria-label={g.label}>
@@ -146,7 +144,6 @@ function Inner() {
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(m); } }}
                           >
                             <span className="leaf-name">{NAME[m]}</span>
-                            {ADDED.has(m) && <span className="new">신규</span>}
                           </div>
                         ))}
                       </div>

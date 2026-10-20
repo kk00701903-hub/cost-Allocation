@@ -4,7 +4,7 @@
 UI는 Salesforce Lightning Design System에 맞춘 글로벌 헤더·좌측 내비·페이지 크롬을 사용합니다.
 
 저장소: [github.com/kk00701903-hub/cost-Allocation](https://github.com/kk00701903-hub/cost-Allocation)  
-**호스팅:** Cloudflare Pages · 커스텀 도메인 `https://cost.core4i.com`  
+**호스팅:** Cloudflare Pages · `https://cost-alloc.core4i.com` (권장) · `https://cost.core4i.com`  
 **PWA:** 브라우저에서 「앱 설치」로 홈 화면/데스크톱에 설치할 수 있습니다 (HTTPS 필요).
 
 정적 배포에서는 데이터가 브라우저 `localStorage`에 저장됩니다. Claude API 챗봇은 로컬 `npm run start` + API 키에서 동작하고, Pages에서는 로컬 안내 모드로 답합니다.
@@ -45,7 +45,7 @@ npm run start                     # http://localhost:3100
 
 - `CLOUDFLARE_API_TOKEN` — Pages Edit 권한
 - `CLOUDFLARE_ACCOUNT_ID` — 계정 ID  
-도메인: Cloudflare에서 `cost.core4i.com` → Pages 프로젝트 `cost-alloc`에 연결
+도메인: `cost-alloc.core4i.com` / `cost.core4i.com` → Pages 프로젝트 `cost-alloc`
 
 ## 환경 변수 (`.env.local`)
 
