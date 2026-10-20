@@ -1,6 +1,7 @@
 /**
- * GitHub Pages용 정적 export.
+ * Cloudflare Pages / 정적 호스팅용 export.
  * API 라우트는 static export와 함께 쓸 수 없어 빌드 동안만 잠깐 치워 둔다.
+ * 커스텀 도메인(cost.core4i.com)은 basePath 없이 루트로 배포한다.
  */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -33,14 +34,31 @@ try {
     stdio: 'inherit',
     env: {
       ...process.env,
-      GITHUB_PAGES: 'true',
+      STATIC_EXPORT: 'true',
       NEXT_PUBLIC_STORAGE: 'local',
-      NEXT_PUBLIC_BASE_PATH: '/cost-Allocation',
+      NEXT_PUBLIC_BASE_PATH: '',
     },
   });
   const out = path.join(root, 'out');
   fs.writeFileSync(path.join(out, '.nojekyll'), '');
-  console.log('Pages build OK → out/');
+  fs.writeFileSync(
+    path.join(out, '_headers'),
+    `/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache
+`,
+  );
+  // SPA-ish fallback: Next trailingSlash export already emits folders; keep 404.html from Next
+  console.log('Static build OK → out/ (Cloudflare Pages / cost.core4i.com)');
 } finally {
   rm(api);
   if (fs.existsSync(bak)) {

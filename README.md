@@ -4,9 +4,10 @@
 UI는 Salesforce Lightning Design System에 맞춘 글로벌 헤더·좌측 내비·페이지 크롬을 사용합니다.
 
 저장소: [github.com/kk00701903-hub/cost-Allocation](https://github.com/kk00701903-hub/cost-Allocation)  
-**GitHub Pages:** [kk00701903-hub.github.io/cost-Allocation](https://kk00701903-hub.github.io/cost-Allocation/)
+**호스팅:** Cloudflare Pages · 커스텀 도메인 `https://cost.core4i.com`  
+**PWA:** 브라우저에서 「앱 설치」로 홈 화면/데스크톱에 설치할 수 있습니다 (HTTPS 필요).
 
-Pages는 정적 배포입니다. 데이터는 브라우저 `localStorage`에 저장되며, AI 도우미 API는 로컬 서버에서만 동작합니다.
+정적 배포에서는 데이터가 브라우저 `localStorage`에 저장됩니다. Claude API 챗봇은 로컬 `npm run start` + API 키에서 동작하고, Pages에서는 로컬 안내 모드로 답합니다.
 
 ## 특징
 
@@ -35,8 +36,16 @@ npm run start                     # http://localhost:3100
 |---|---|
 | `npm run dev` | 개발 서버 |
 | `npm run build` / `npm run start` | 운영 빌드 / 실행 |
+| `npm run build:pages` | Cloudflare Pages용 정적 export (+ PWA 아이콘) |
+| `npm run deploy:cf` | 정적 빌드 후 Wrangler로 Pages 배포 |
 | `npm test` | 회귀 테스트 |
 | `npm run lint` | 타입 검사 |
+
+### Cloudflare Pages 시크릿 (GitHub Actions)
+
+- `CLOUDFLARE_API_TOKEN` — Pages Edit 권한
+- `CLOUDFLARE_ACCOUNT_ID` — 계정 ID  
+도메인: Cloudflare에서 `cost.core4i.com` → Pages 프로젝트 `cost-alloc`에 연결
 
 ## 환경 변수 (`.env.local`)
 

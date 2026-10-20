@@ -20,9 +20,17 @@ const IDS: Record<string, string> = {
   M06: 'JTPF040060', M07: 'JTPF040070', M08: 'JTPF040080', M09: 'JTPF040090', M10: 'JTPF040100',
   M11: 'JTPF040110', M12: 'JTPF040130', M13: 'JTPF040120', N00: 'CA-N00', X01: 'CA-X01', LOG: 'CA-LOG',
 };
-const TREE = ['N00', 'M01', 'M02', 'M03', 'M04', 'M05', 'M06', 'M07', 'M08', 'M09', 'M10', 'M11', 'M12', 'M13', 'X01', 'LOG'];
 const NAME: Record<string, string> = { ...MENU_NAME, N00: '월 마감 흐름', LOG: '작업 이력' };
 const ADDED = new Set(['N00', 'X01', 'LOG']);
+
+/** 2레벨 내비: 카테고리 › 화면 (월 마감 흐름과 동일 축) */
+const NAV: { id: string; label: string; items: string[] }[] = [
+  { id: 'home', label: '대시보드', items: ['N00', 'LOG'] },
+  { id: 'base', label: '기준 관리', items: ['X01', 'M01', 'M02'] },
+  { id: 'vol', label: '물동량', items: ['M03', 'M04', 'M05', 'M06', 'M07'] },
+  { id: 'alloc', label: '원가 배분', items: ['M08', 'M09', 'M10', 'M11', 'M12', 'M13'] },
+];
+const NAV_OF = Object.fromEntries(NAV.flatMap((g) => g.items.map((m) => [m, g.id])));
 
 export default function Shell() {
   return <AppProvider><Inner /></AppProvider>;
@@ -33,9 +41,19 @@ function Inner() {
   const [open, setOpen] = useState<string[]>(['N00']);
   const [active, setActive] = useState('N00');
   const [navOpen, setNavOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(true);
   const [store, setStore] = useState('');
+  const [navExpand, setNavExpand] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(NAV.map((g) => [g.id, true])),
+  );
   useEffect(() => { dbInfo().then((x) => setStore(x.root)).catch(() => setStore('저장소 연결 실패')); }, []);
+  useEffect(() => {
+    const gid = NAV_OF[active];
+    if (gid) setNavExpand((e) => (e[gid] ? e : { ...e, [gid]: true }));
+  }, [active]);
   const go = (m: string) => { setOpen((o) => (o.includes(m) ? o : [...o, m])); setActive(m); };
+  const toggleCat = (id: string) => setNavExpand((e) => ({ ...e, [id]: !e[id] }));
+  const catLabel = NAV.find((g) => g.id === NAV_OF[active])?.label;
   const close = (m: string) => {
     setOpen((o) => {
       const nx = o.filter((x) => x !== m);
@@ -83,8 +101,13 @@ function Inner() {
         <button type="button" className="util-btn" onClick={() => go('N00')}>월 마감 흐름</button>
         <button type="button" className="util-btn" onClick={() => idx > 0 && setActive(open[idx - 1])} disabled={idx <= 0}>이전</button>
         <button type="button" className="util-btn" onClick={() => idx < open.length - 1 && setActive(open[idx + 1])} disabled={idx >= open.length - 1}>다음</button>
+        <button type="button" className={`nav-toggle ${chatOpen ? 'on' : ''}`} onClick={() => setChatOpen((v) => !v)} aria-pressed={chatOpen}>
+          AI 도우미
+        </button>
         <span className="grow" />
-        <span className="muted" style={{ fontSize: 12 }}>손익관리 › 공동물류 원가배분</span>
+        <span className="muted" style={{ fontSize: 12 }}>
+          손익관리 › 공동물류 원가배분{catLabel ? ` › ${catLabel}` : ''}
+        </span>
       </div>
 
       <div className="workarea">
@@ -95,20 +118,42 @@ function Inner() {
               <button type="button" onClick={() => setNavOpen(false)} aria-label="메뉴 닫기">×</button>
             </div>
             <div className="tree">
-              <div className="folder">손익관리</div>
-              <div className="folder sub">공동물류 원가배분</div>
-              {TREE.map((m) => (
-                <div
-                  key={m}
-                  className={`leaf ${active === m ? 'on' : ''}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => go(m)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(m); } }}
-                >
-                  {NAME[m]}{ADDED.has(m) && <span className="new">신규</span>}
-                </div>
-              ))}
+              <div className="nav-app">공동물류 원가배분</div>
+              {NAV.map((g) => {
+                const openCat = !!navExpand[g.id];
+                const hasActive = g.items.includes(active);
+                return (
+                  <div key={g.id} className={`nav-group ${hasActive ? 'active' : ''} ${openCat ? 'open' : ''}`}>
+                    <button
+                      type="button"
+                      className="nav-cat"
+                      aria-expanded={openCat}
+                      onClick={() => toggleCat(g.id)}
+                    >
+                      <span className="nav-chevron" aria-hidden>{openCat ? '▾' : '▸'}</span>
+                      <span className="nav-cat-label">{g.label}</span>
+                      <span className="nav-count">{g.items.length}</span>
+                    </button>
+                    {openCat && (
+                      <div className="nav-items" role="group" aria-label={g.label}>
+                        {g.items.map((m) => (
+                          <div
+                            key={m}
+                            className={`leaf ${active === m ? 'on' : ''}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => go(m)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(m); } }}
+                          >
+                            <span className="leaf-name">{NAME[m]}</span>
+                            {ADDED.has(m) && <span className="new">신규</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </nav>
         )}
@@ -117,6 +162,7 @@ function Inner() {
           {app.ready && open.map((m) => <div key={m} className="win" style={{ display: m === active ? 'flex' : 'none' }}>{screens[m]}</div>)}
           {app.busy && <div className="busy"><div>{app.busy}…</div></div>}
         </div>
+        <Chat active={active} open={chatOpen} onOpenChange={setChatOpen} />
       </div>
 
       <div className="wintabs" ref={tabsRef} onWheel={(e) => { if (e.deltaY) e.currentTarget.scrollLeft += e.deltaY; }}>
@@ -132,11 +178,13 @@ function Inner() {
           </button>
         )}
       </div>
-      <Chat active={active} />
       <footer className="statusbar">
         <span className="msg">{app.status || `준비 · ${app.tripSource}`}</span>
         <span>화면 ID · {IDS[active]}</span>
         <span className="store" title={store}>저장소 · {store}</span>
+        {!chatOpen && (
+          <button type="button" className="chatfab" onClick={() => setChatOpen(true)}>AI 도우미</button>
+        )}
       </footer>
     </div>
   );

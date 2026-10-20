@@ -1,0 +1,4 @@
+# Cloudflare Pages — https://cost.core4i.com
+name = "cost-alloc"
+compatibility_date = "2026-10-20"
+pages_build_output_dir = "out"

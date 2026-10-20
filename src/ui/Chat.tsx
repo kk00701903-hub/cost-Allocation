@@ -1,12 +1,14 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../lib/store';
 import { NODES, nodeState } from '../lib/flow';
 import { DEPTS } from '../lib/judge';
+import { localAssist } from '../lib/localAssist';
 import { s, sumCol, ymDash } from '../lib/util';
 
 interface Msg { role: 'user' | 'assistant'; content: string }
 const QUICK = ['이 화면 검증 결과를 설명해줘', '이번 달 다음에 뭘 해야 해?', '간선비 화주별 배분 산식을 예시로 알려줘', '배분 제외 기준은 어떻게 쓰면 돼?'];
+const isLocalStore = () => (process.env.NEXT_PUBLIC_STORAGE || 'server') === 'local';
 
 /** 챗봇에 보낼 현재 상태 요약 (원천 행 데이터는 보내지 않고 합계·건수·검증만) */
 function useContextText(active: string) {
@@ -40,26 +42,37 @@ function useContextText(active: string) {
   };
 }
 
-export default function Chat({ active }: { active: string }) {
-  const [open, setOpen] = useState(false);
+export default function Chat({ active, open, onOpenChange }: { active: string; open: boolean; onOpenChange: (v: boolean) => void }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const ctx = useContextText(active);
   const box = useRef<HTMLDivElement>(null);
+  const local = isLocalStore();
+
+  useEffect(() => {
+    if (open) box.current?.scrollTo({ top: box.current.scrollHeight });
+  }, [open, msgs]);
 
   const send = async (q: string) => {
     if (!q.trim() || busy) return;
     const next: Msg[] = [...msgs, { role: 'user', content: q.trim() }];
     setMsgs([...next, { role: 'assistant', content: '' }]); setText(''); setBusy(true);
     try {
-      if ((process.env.NEXT_PUBLIC_STORAGE || 'server') === 'local') {
-        setMsgs([...next, { role: 'assistant', content: 'GitHub Pages 정적 배포에서는 AI 도우미 API를 쓸 수 없습니다. 로컬에서 `npm run start`로 실행하고 ANTHROPIC_API_KEY를 설정하세요.' }]);
+      if (local) {
+        const answer = localAssist(q.trim(), ctx());
+        setMsgs([...next, { role: 'assistant', content: answer }]);
         return;
       }
       const api = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/chat`;
       const r = await fetch(api, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages: next, context: ctx() }) });
-      if (!r.ok || !r.body) { const t = await r.text(); setMsgs([...next, { role: 'assistant', content: `⚠ ${t}` }]); return; }
+      if (!r.ok || !r.body) {
+        const t = await r.text();
+        // API 실패 시 로컬 안내로 폴백
+        const fallback = localAssist(q.trim(), ctx());
+        setMsgs([...next, { role: 'assistant', content: `⚠ 서버: ${t || r.status}\n\n—— 로컬 안내 ——\n${fallback}` }]);
+        return;
+      }
       const rd = r.body.getReader(); const dec = new TextDecoder(); let acc = '';
       for (;;) {
         const { value, done } = await rd.read(); if (done) break;
@@ -68,27 +81,45 @@ export default function Chat({ active }: { active: string }) {
         box.current?.scrollTo({ top: box.current.scrollHeight });
       }
     } catch (e) {
-      setMsgs([...next, { role: 'assistant', content: `⚠ 연결 실패: ${(e as Error).message}` }]);
+      const fallback = localAssist(q.trim(), ctx());
+      setMsgs([...next, { role: 'assistant', content: `⚠ 연결 실패: ${(e as Error).message}\n\n—— 로컬 안내 ——\n${fallback}` }]);
     } finally { setBusy(false); }
   };
 
-  if (!open) return <button type="button" className="chatfab" onClick={() => setOpen(true)}>💬 AI 도우미</button>;
+  if (!open) return null;
+
   return (
-    <div className="chat">
-      <div className="chathead">AI 도우미 <span className="muted">· 지금 화면의 검증·합계를 같이 봅니다</span>
-        <span className="grow" /><button type="button" onClick={() => setMsgs([])}>새 대화</button><button type="button" onClick={() => setOpen(false)}>×</button></div>
+    <aside className="chat-dock" aria-label="AI 도우미">
+      <div className="chathead">
+        <div>
+          <strong>AI 도우미</strong>
+          <span className="muted">{local ? ' · 로컬 안내' : ' · 지금 화면 검증·합계'}</span>
+        </div>
+        <span className="grow" />
+        <button type="button" onClick={() => setMsgs([])} title="대화 초기화">새 대화</button>
+        <button type="button" onClick={() => onOpenChange(false)} aria-label="닫기">×</button>
+      </div>
       <div className="chatbody" ref={box}>
-        {msgs.length === 0 && <div className="chatempty">
-          <p>원가배분 산식, 화면 사용법, 검증 경고의 뜻, 다음 할 일을 물어보세요. 원천 행 데이터는 보내지 않고 합계·건수·검증 결과만 보냅니다.</p>
-          {QUICK.map((q) => <button type="button" key={q} onClick={() => send(q)}>{q}</button>)}
-        </div>}
-        {msgs.map((m, i) => <div key={i} className={`bubble ${m.role}`}>{m.content || (busy && i === msgs.length - 1 ? '…' : '')}</div>)}
+        {msgs.length === 0 && (
+          <div className="chatempty">
+            <p>원가배분 산식, 검증 경고, 다음 할 일을 물어보세요. 원천 행은 보내지 않고 합계·건수·검증만 사용합니다.</p>
+            {QUICK.map((q) => <button type="button" key={q} onClick={() => void send(q)}>{q}</button>)}
+          </div>
+        )}
+        {msgs.map((m, i) => (
+          <div key={i} className={`bubble ${m.role}`}>{m.content || (busy && i === msgs.length - 1 ? '…' : '')}</div>
+        ))}
       </div>
       <div className="chatinput">
-        <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="질문 입력 (Enter 보내기, Shift+Enter 줄바꿈)"
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(text); } }} />
-        <button type="button" onClick={() => send(text)} disabled={busy}>보내기</button>
+        <textarea
+          rows={2}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="질문 입력 (Enter 보내기)"
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(text); } }}
+        />
+        <button type="button" onClick={() => void send(text)} disabled={busy}>보내기</button>
       </div>
-    </div>
+    </aside>
   );
 }
